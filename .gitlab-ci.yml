@@ -55,3 +55,5 @@ deploy:
     - docker build -t my-app:latest .
     - echo "Ejecutando contenedor Docker..."
     - docker run -d -p 5000:5000 my-app
+
+#Probemos el pipeline
