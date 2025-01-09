@@ -1,20 +1,29 @@
 # Imagen base para Python
+FROM python:3.9-slim AS backend
+
+# Configuración del backend
+WORKDIR /app/backend
+COPY backend /app/backend
+RUN pip install -r requirements.txt
+
+# Imagen base para Node.js (Frontend)
+FROM node:16 AS frontend
+
+# Configuración del frontend
+WORKDIR /app/frontend
+COPY frontend /app/frontend
+RUN npm install && npm run build
+
+# Imagen final para ejecutar la aplicación
 FROM python:3.9-slim
 
-# Instalar Node.js para el frontend
-RUN apt-get update && apt-get install -y curl && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
-
-# Configurar directorio de trabajo
+# Copiar el backend y frontend ya preparados
 WORKDIR /app
+COPY --from=backend /app/backend /app/backend
+COPY --from=frontend /app/frontend/build /app/frontend/build
 
-# Copiar y preparar backend
-COPY backend /app/backend
-RUN pip install -r backend/requirements.txt
-
-# Copiar y preparar frontend
-COPY frontend /app/frontend
-RUN cd /app/frontend && npm install && npm run build
-
-# Exponer el puerto y ejecutar Flask
+# Exponer el puerto
 EXPOSE 5000
+
+# Ejecutar la aplicación Flask
 CMD ["python", "backend/app.py"]
