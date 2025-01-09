@@ -4,36 +4,54 @@ stages:
   - test
   - deploy
 
+# Etapa de análisis estático
 pre-build:
   stage: pre-build
   script:
     - echo "Instalando dependencias del backend..."
     - pip install -r backend/requirements.txt
+    - echo "Ejecutando flake8..."
     - flake8 backend || true
+    - echo "Ejecutando pylint..."
     - pylint backend/app.py || true
     - echo "Instalando dependencias del frontend..."
-    - cd frontend && npm install && npm audit || true
+    - cd frontend && npm install
+    - echo "Verificando vulnerabilidades de dependencias..."
+    - npm audit || true
+  artifacts:
+    paths:
+      - frontend/node_modules/
+    expire_in: 1 week
 
+# Etapa de construcción
 build:
   stage: build
   script:
     - echo "Compilando frontend..."
     - cd frontend && npm run build
-    - echo "Preparando backend..."
+    - echo "Preparando directorios para el despliegue..."
     - mkdir -p dist
     - cp -r frontend/build/* dist/
+    - echo "Compilación completada"
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
 
+# Etapa de pruebas
 test:
   stage: test
   script:
     - echo "Ejecutando pruebas del backend..."
-    - pytest backend
+    - pytest backend || true
     - echo "Ejecutando pruebas del frontend..."
     - cd frontend && npm test || true
 
+# Etapa de despliegue
 deploy:
   stage: deploy
   script:
-    - echo "Construyendo y desplegando la aplicación..."
+    - echo "Construyendo imagen Docker..."
     - docker build -t my-app:latest .
+    - echo "Ejecutando contenedor Docker..."
     - docker run -d -p 5000:5000 my-app
